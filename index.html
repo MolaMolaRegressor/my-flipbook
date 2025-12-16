@@ -126,17 +126,12 @@
 
     <script>
         // ========== НАСТРОЙКИ ==========
-        // ЗАМЕНИТЕ ЭТИ ИМЕНА ФАЙЛОВ НА ВАШИ!
-        const imageFiles = [
-            '01.jpg',
-            '02.jpg', 
-            '03.jpg'
-        ];
-        
+        const imageFiles = ['01.jpg', '02.jpg', '03.jpg'];
         let currentIndex = 0;
         let slider = document.getElementById('slider');
         let counter = document.getElementById('counter');
-        
+        let pageWidth = 0;
+
         // ========== СОЗДАНИЕ СТРАНИЦ ==========
         function createPages() {
             slider.innerHTML = '';
@@ -148,66 +143,80 @@
                 const img = document.createElement('img');
                 img.src = filename;
                 img.alt = `Страница ${index + 1}`;
-                img.loading = 'lazy';
                 
-                // Обработка ошибок
                 img.onerror = function() {
                     console.error(`Не удалось загрузить: ${filename}`);
                     this.style.background = '#f0f0f0';
                     this.style.display = 'flex';
                     this.style.alignItems = 'center';
                     this.style.justifyContent = 'center';
-                    this.innerHTML = `<div style="color:#999;">${filename}</div>`;
+                    this.innerHTML = `<div style="color:#999;">Страница ${index + 1}</div>`;
                 };
                 
                 page.appendChild(img);
                 slider.appendChild(page);
             });
             
-            // Устанавливаем правильную ширину
-            updateSliderSize();
-            goToPage(0);
+            // ВАЖНО: Ждем пока DOM обновится
+            setTimeout(() => {
+                updateSliderSize();
+                goToPage(0);
+            }, 10);
         }
-        
-        // ========== УПРАВЛЕНИЕ ==========
+
+        // ========== ОБНОВЛЕНИЕ РАЗМЕРОВ ==========
         function updateSliderSize() {
-            const pageCount = imageFiles.length;
-            const viewportWidth = document.querySelector('.viewport').offsetWidth;
+            const viewport = document.querySelector('.viewport');
+            if (!viewport) return;
             
-            slider.style.width = `${pageCount * 100}%`;
+            // Ширина ВИДИМОЙ области
+            pageWidth = viewport.offsetWidth;
             
-            // Устанавливаем ширину каждой страницы
+            // Ширина слайдера = количество страниц × ширина вьюпорта
+            slider.style.width = `${imageFiles.length * pageWidth}px`;
+            
+            // Каждая страница = ширина вьюпорта
             document.querySelectorAll('.page').forEach(page => {
-                page.style.width = `${100 / pageCount}%`;
+                page.style.width = `${pageWidth}px`;
             });
+            
+            console.log('Размеры обновлены. Ширина страницы:', pageWidth + 'px');
         }
-        
+
+        // ========== ПЕРЕХОД К СТРАНИЦЕ ==========
         function goToPage(index) {
             if (index < 0 || index >= imageFiles.length) return;
             
             currentIndex = index;
-            const translateX = -currentIndex * 100;
-            slider.style.transform = `translateX(${translateX}%)`;
+            
+            // ВАЖНО: Смещение в ПИКСЕЛЯХ, а не в процентах!
+            // Если pageWidth = 800px, currentIndex = 0 → translateX(0px)
+            // Если pageWidth = 800px, currentIndex = 1 → translateX(-800px)
+            // Если pageWidth = 800px, currentIndex = 2 → translateX(-1600px)
+            const translateX = -currentIndex * pageWidth;
+            slider.style.transform = `translateX(${translateX}px)`;
             
             // Обновляем счетчик
             counter.textContent = `${currentIndex + 1} / ${imageFiles.length}`;
             
             // Обновляем кнопки
             updateButtons();
+            
+            console.log('Страница:', currentIndex + 1, 'Смещение:', translateX + 'px');
         }
-        
+
         function nextPage() {
             if (currentIndex < imageFiles.length - 1) {
                 goToPage(currentIndex + 1);
             }
         }
-        
+
         function prevPage() {
             if (currentIndex > 0) {
                 goToPage(currentIndex - 1);
             }
         }
-        
+
         function updateButtons() {
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
@@ -215,12 +224,10 @@
             prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
             nextBtn.style.opacity = currentIndex === imageFiles.length - 1 ? '0.5' : '1';
         }
-        
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        function init() {
-            createPages();
-            
-            // Обработчики событий
+
+        // ========== УПРАВЛЕНИЕ ==========
+        function setupControls() {
+            // Кнопки
             document.getElementById('prevBtn').onclick = prevPage;
             document.getElementById('nextBtn').onclick = nextPage;
             
@@ -248,15 +255,19 @@
                 }
             };
             
-            // Ресайз
+            // Ресайз окна
             window.onresize = updateSliderSize;
         }
-        
-        // Запуск
+
+        // ========== ЗАПУСК ==========
+        function init() {
+            createPages();
+            setupControls();
+            console.log('Флипбук инициализирован. Файлы:', imageFiles);
+        }
+
+        // Запускаем
         window.onload = init;
-        
-        // Для отладки
-        console.log('Загружены файлы:', imageFiles);
     </script>
 </body>
 </html>
