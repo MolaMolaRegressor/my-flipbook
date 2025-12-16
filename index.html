@@ -64,13 +64,14 @@
 
         /* КАРТИНКА ВНУТРИ СТРАНИЦЫ */
         .page img {
-            max-width: 95%;
-            max-height: 95%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            display: block;
-        }
+        max-height: 90vh; /* Ограничиваем по высоте экрана */
+        max-width: 90%;   /* И по ширине */
+        height: auto;
+        width: auto;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto; /* ЦЕНТРИРОВАНИЕ ПО ГОРИЗОНТАЛИ */
+    }
 
         /* СТРЕЛКИ */
         .arrow {
@@ -310,3 +311,4 @@
     </script>
 </body>
 </html>
+
