@@ -5,140 +5,259 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
     <style>
-        /* Стили библиотеки */
-        .fb-container { position: relative; width: 100%; height: 100%; }
-        .fb-viewport { position: absolute; width: 100%; height: 100%; perspective: 2000px; }
-        .fb-page { position: absolute; width: 50%; height: 100%; transform-style: preserve-3d; backface-visibility: hidden; }
-        .fb-page-front, .fb-page-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; }
-        .fb-page-front { transform: rotateY(0deg); }
-        .fb-page-back { transform: rotateY(180deg); }
-        .fb-page img { width: 100%; height: 100%; object-fit: contain; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Наши стили */
-        body, html { margin: 0; padding: 0; height: 100%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #flipbook-container { width: 90vw; max-width: 1000px; height: 75vh; position: relative; }
-        #flipbook { width: 100%; height: 100%; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.9); border: 1px solid #ddd; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 100; transition: all 0.2s; user-select: none; }
-        .nav-btn:hover { background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        #prev-btn { left: -70px; }
-        #next-btn { right: -70px; }
-        @media (max-width: 1200px) { #prev-btn { left: 10px; } #next-btn { right: 10px; } .nav-btn { background: rgba(255,255,255,0.8); width: 40px; height: 40px; } }
+        body {
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* ОСНОВНОЙ КОНТЕЙНЕР */
+        .flipbook-container {
+            width: 90vw;
+            max-width: 1000px;
+            height: 70vh;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden; /* ОБРЕЗАЕТ ЛИШНЕЕ */
+            border-radius: 5px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* ОБЛАСТЬ ПРОСМОТРА */
+        .viewport {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #f8f8f8;
+        }
+        
+        /* СЛАЙДЕР СТРАНИЦ */
+        .slider {
+            display: flex;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: transform 0.4s ease;
+        }
+        
+        /* ОДНА СТРАНИЦА */
+        .page {
+            flex: 0 0 100%; /* КАЖДАЯ СТРАНИЦА = 100% ШИРИНЫ */
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+        }
+        
+        /* КАРТИНКА */
+        .page img {
+            max-width: 95%;
+            max-height: 95%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+        
+        /* СТРЕЛКИ */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ddd;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        .nav-arrow:hover {
+            background: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+        
+        .arrow-left {
+            left: 20px;
+        }
+        
+        .arrow-right {
+            right: 20px;
+        }
+        
+        /* АДАПТИВНОСТЬ */
+        @media (max-width: 768px) {
+            .flipbook-container {
+                height: 60vh;
+                min-height: 400px;
+            }
+            
+            .nav-arrow {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+                background: rgba(255,255,255,0.85);
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="flipbook-container">
-        <button class="nav-btn" id="prev-btn">‹</button>
-        <div id="flipbook">
-            <div class="fb-container">
-                <div class="fb-viewport" id="fb-viewport"></div>
+    <div class="flipbook-container">
+        <!-- ОБЛАСТЬ ПРОСМОТРА -->
+        <div class="viewport" id="viewport">
+            <!-- СЛАЙДЕР СТРАНИЦ -->
+            <div class="slider" id="slider">
+                <!-- Страницы добавятся через JS -->
             </div>
         </div>
-        <button class="nav-btn" id="next-btn">›</button>
+        
+        <!-- СТРЕЛКИ -->
+        <button class="nav-arrow arrow-left" id="prevBtn">‹</button>
+        <button class="nav-arrow arrow-right" id="nextBtn">›</button>
     </div>
 
     <script>
-        // ПРОСТАЯ БИБЛИОТЕКА ФЛИПБУКА (встроена в код)
-        class SimpleFlipBook {
-            constructor(options) {
-                this.container = document.querySelector(options.container);
-                this.pages = options.pages || [];
-                this.currentPage = options.startPage || 0;
-                this.pageWidth = options.pageWidth || 800;
-                this.pageHeight = options.pageHeight || 600;
-                this.viewport = document.getElementById('fb-viewport');
-                this.init();
-            }
+        // ========== КОНФИГУРАЦИЯ ==========
+        // ЗАМЕНИТЕ НА ВАШИ ССЫЛКИ!
+        const PAGES = [
+            '01.jpg',
+            '02.jpg', 
+            '03.jpg'
+            // Добавьте больше: 'page5.jpg', 'page6.jpg'...
+        ];
+        
+        // Настройки
+        let currentPage = 0;
+        let slider = null;
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            slider = document.getElementById('slider');
             
-            init() {
-                this.renderPages();
-                this.goToPage(this.currentPage);
-                this.setupEvents();
-            }
+            // Создаем страницы
+            createPages();
             
-            renderPages() {
-                this.viewport.innerHTML = '';
-                for(let i = 0; i < this.pages.length; i++) {
-                    const page = document.createElement('div');
-                    page.className = 'fb-page';
-                    page.style.width = `${this.pageWidth}px`;
-                    page.style.height = `${this.pageHeight}px`;
-                    
-                    const front = document.createElement('div');
-                    front.className = 'fb-page-front';
-                    const frontImg = document.createElement('img');
-                    frontImg.src = this.pages[i];
-                    frontImg.alt = `Страница ${i + 1}`;
-                    front.appendChild(frontImg);
-                    
-                    page.appendChild(front);
-                    this.viewport.appendChild(page);
-                }
-            }
+            // Устанавливаем обработчики
+            setupControls();
             
-            goToPage(pageIndex) {
-                if(pageIndex < 0 || pageIndex >= this.pages.length) return;
-                this.currentPage = pageIndex;
-                const offset = -pageIndex * this.pageWidth;
-                this.viewport.style.transform = `translateX(${offset}px)`;
-            }
+            console.log('Флипбук загружен. Страниц:', PAGES.length);
+        });
+        
+        // ========== ФУНКЦИИ ==========
+        
+        // Создание страниц
+        function createPages() {
+            slider.innerHTML = ''; // Очищаем
             
-            next() {
-                if(this.currentPage < this.pages.length - 1) {
-                    this.goToPage(this.currentPage + 1);
-                }
-            }
-            
-            previous() {
-                if(this.currentPage > 0) {
-                    this.goToPage(this.currentPage - 1);
-                }
-            }
-            
-            setupEvents() {
-                // Свайп для мобильных
-                let startX = 0;
-                this.viewport.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                });
+            PAGES.forEach((imageUrl, index) => {
+                const page = document.createElement('div');
+                page.className = 'page';
                 
-                this.viewport.addEventListener('touchend', (e) => {
-                    const endX = e.changedTouches[0].clientX;
-                    const diff = startX - endX;
-                    if(Math.abs(diff) > 50) {
-                        if(diff > 0) this.next();
-                        else this.previous();
-                    }
-                });
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = `Страница ${index + 1}`;
+                img.onerror = function() {
+                    // Запасной вариант если картинка не загрузилась
+                    this.onerror = null;
+                    this.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="100%" height="100%" fill="#f5f5f5"/><text x="50%" y="50%" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Страница ' + (index + 1) + '</text></svg>';
+                };
+                
+                page.appendChild(img);
+                slider.appendChild(page);
+            });
+            
+            // Устанавливаем правильную ширину слайдера
+            updateSliderWidth();
+        }
+        
+        // Обновление ширины слайдера
+        function updateSliderWidth() {
+            const pageCount = PAGES.length;
+            const viewportWidth = document.getElementById('viewport').offsetWidth;
+            
+            // Ширина слайдера = количество страниц × 100%
+            slider.style.width = `${pageCount * 100}%`;
+            
+            // Ширина каждой страницы
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.width = `${100 / pageCount}%`;
+            });
+            
+            // Показываем текущую страницу
+            goToPage(currentPage);
+        }
+        
+        // Переход к странице
+        function goToPage(pageIndex) {
+            if (pageIndex < 0 || pageIndex >= PAGES.length) return;
+            
+            currentPage = pageIndex;
+            const viewportWidth = document.getElementById('viewport').offsetWidth;
+            const translateX = -currentPage * viewportWidth;
+            
+            slider.style.transform = `translateX(${translateX}px)`;
+        }
+        
+        // Следующая страница
+        function nextPage() {
+            if (currentPage < PAGES.length - 1) {
+                goToPage(currentPage + 1);
             }
         }
         
-        // ИНИЦИАЛИЗАЦИЯ
-        document.addEventListener('DOMContentLoaded', function() {
-            // УКАЖИТЕ ВАШИ ССЫЛКИ НА КАРТИНКИ!
-            const flipbook = new SimpleFlipBook({
-                container: '#flipbook',
-                pages: [
-                    'https://molamolaregressor.github.io/my-flipbook/01.jpg',
-                    'https://molamolaregressor.github.io/my-flipbook/02.jpg',
-                    'https://molamolaregressor.github.io/my-flipbook/03.jpg'
-                ],
-                pageWidth: 900,
-                pageHeight: 600,
-                startPage: 0
+        // Предыдущая страница
+        function prevPage() {
+            if (currentPage > 0) {
+                goToPage(currentPage - 1);
+            }
+        }
+        
+        // Управление
+        function setupControls() {
+            // Кнопки
+            document.getElementById('prevBtn').addEventListener('click', prevPage);
+            document.getElementById('nextBtn').addEventListener('click', nextPage);
+            
+            // Клавиатура
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' || e.key === ' ') nextPage();
+                if (e.key === 'ArrowLeft') prevPage();
             });
             
-            // Кнопки управления
-            document.getElementById('next-btn').addEventListener('click', () => flipbook.next());
-            document.getElementById('prev-btn').addEventListener('click', () => flipbook.previous());
+            // Свайп на мобильных
+            let touchStartX = 0;
+            const viewport = document.getElementById('viewport');
             
-            // Управление клавиатурой
-            document.addEventListener('keydown', (event) => {
-                if(event.key === 'ArrowRight') flipbook.next();
-                if(event.key === 'ArrowLeft') flipbook.previous();
+            viewport.addEventListener('touchstart', function(e) {
+                touchStartX = e.touches[0].clientX;
             });
             
-            console.log('Флипбук загружен! Страниц:', flipbook.pages.length);
-        });
+            viewport.addEventListener('touchend', function(e) {
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+                
+                if (Math.abs(diff) > 50) { // Порог свайпа
+                    if (diff > 0) nextPage();   // Свайп влево
+                    else prevPage();            // Свайп вправо
+                }
+            });
+            
+            // Ресайз окна
+            window.addEventListener('resize', updateSliderWidth);
+        }
     </script>
 </body>
 </html>
