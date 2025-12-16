@@ -18,12 +18,13 @@
             align-items: center;
             min-height: 100vh;
             font-family: Arial, sans-serif;
+            overflow: hidden; /* Убираем скролл */
         }
 
         .flipbook {
             width: 90vw;
-            max-width: 1000px;
-            height: 80vh;
+            max-width: 800px; /* УМЕНЬШИЛИ для вертикальных картинок */
+            height: 85vh; /* УВЕЛИЧИЛИ высоту */
             position: relative;
             overflow: hidden;
             border-radius: 8px;
@@ -55,11 +56,10 @@
             background: white;
         }
 
+        /* ИЗМЕНЕНИЕ: вертикальные картинки масштабируются по высоте */
         .page img {
-            max-height: 90vh;
-            max-width: 95%;
-            height: auto;
-            width: auto;
+            max-height: 95%; /* Занимает 95% высоты контейнера */
+            width: auto; /* Ширина подстраивается */
             object-fit: contain;
             display: block;
             margin: 0 auto;
@@ -105,10 +105,17 @@
         }
 
         @media (max-width: 768px) {
-            .flipbook { height: 70vh; }
-            .arrow { width: 50px; height: 50px; font-size: 24px; }
-            .arrow-left { left: 15px; }
-            .arrow-right { right: 15px; }
+            .flipbook { 
+                height: 75vh; 
+                max-width: 95vw;
+            }
+            .arrow { 
+                width: 50px; 
+                height: 50px; 
+                font-size: 24px; 
+            }
+            .arrow-left { left: 10px; }
+            .arrow-right { right: 10px; }
         }
     </style>
 </head>
@@ -136,32 +143,45 @@
         function createPages() {
             slider.innerHTML = '';
             
+            // Проверяем загрузку каждого файла
+            let loadedCount = 0;
+            
             imageFiles.forEach((filename, index) => {
                 const page = document.createElement('div');
                 page.className = 'page';
+                page.id = `page-${index}`;
                 
-                const img = document.createElement('img');
+                const img = new Image(); // Используем Image() для контроля загрузки
                 img.src = filename;
                 img.alt = `Страница ${index + 1}`;
                 
+                img.onload = function() {
+                    loadedCount++;
+                    console.log(`Загружено: ${filename} (${loadedCount}/${imageFiles.length})`);
+                    
+                    // Когда ВСЕ картинки загружены
+                    if (loadedCount === imageFiles.length) {
+                        setTimeout(() => {
+                            updateSliderSize();
+                            goToPage(0); // ВАЖНО: показываем ПЕРВУЮ страницу
+                            console.log('Все картинки загружены, показываем первую страницу');
+                        }, 100);
+                    }
+                };
+                
                 img.onerror = function() {
-                    console.error(`Не удалось загрузить: ${filename}`);
+                    console.error(`ОШИБКА: ${filename} не загружен`);
+                    loadedCount++;
                     this.style.background = '#f0f0f0';
                     this.style.display = 'flex';
                     this.style.alignItems = 'center';
                     this.style.justifyContent = 'center';
-                    this.innerHTML = `<div style="color:#999;">Страница ${index + 1}</div>`;
+                    this.innerHTML = `<div style="color:#999; padding:20px;">Страница ${index + 1}<br><small>${filename}</small></div>`;
                 };
                 
                 page.appendChild(img);
                 slider.appendChild(page);
             });
-            
-            // ВАЖНО: Ждем пока DOM обновится
-            setTimeout(() => {
-                updateSliderSize();
-                goToPage(0);
-            }, 10);
         }
 
         // ========== ОБНОВЛЕНИЕ РАЗМЕРОВ ==========
@@ -178,21 +198,31 @@
             // Каждая страница = ширина вьюпорта
             document.querySelectorAll('.page').forEach(page => {
                 page.style.width = `${pageWidth}px`;
+                page.style.flexBasis = `${pageWidth}px`; // Дополнительное свойство для Flexbox
             });
             
-            console.log('Размеры обновлены. Ширина страницы:', pageWidth + 'px');
+            console.log('Размеры обновлены:', {
+                'Ширина страницы': pageWidth + 'px',
+                'Ширина слайдера': imageFiles.length * pageWidth + 'px',
+                'Страниц': imageFiles.length
+            });
         }
 
         // ========== ПЕРЕХОД К СТРАНИЦЕ ==========
         function goToPage(index) {
-            if (index < 0 || index >= imageFiles.length) return;
+            if (index < 0 || index >= imageFiles.length) {
+                console.warn('Некорректный индекс страницы:', index);
+                return;
+            }
             
             currentIndex = index;
             
-            // ВАЖНО: Смещение в ПИКСЕЛЯХ, а не в процентах!
-            // Если pageWidth = 800px, currentIndex = 0 → translateX(0px)
-            // Если pageWidth = 800px, currentIndex = 1 → translateX(-800px)
-            // Если pageWidth = 800px, currentIndex = 2 → translateX(-1600px)
+            // ВАЖНО: принудительно обновляем ширину перед расчетом
+            if (pageWidth === 0) {
+                updateSliderSize();
+            }
+            
+            // Смещение в ПИКСЕЛЯХ
             const translateX = -currentIndex * pageWidth;
             slider.style.transform = `translateX(${translateX}px)`;
             
@@ -202,18 +232,29 @@
             // Обновляем кнопки
             updateButtons();
             
-            console.log('Страница:', currentIndex + 1, 'Смещение:', translateX + 'px');
+            console.log(`Страница ${currentIndex + 1}, смещение: ${translateX}px`);
+            
+            // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: подсвечиваем текущую страницу
+            document.querySelectorAll('.page').forEach((page, i) => {
+                page.style.outline = i === currentIndex ? '2px solid rgba(255,0,0,0.3)' : 'none';
+            });
         }
 
         function nextPage() {
+            console.log('Кнопка "Вперед" нажата');
             if (currentIndex < imageFiles.length - 1) {
                 goToPage(currentIndex + 1);
+            } else {
+                console.log('Это последняя страница');
             }
         }
 
         function prevPage() {
+            console.log('Кнопка "Назад" нажата');
             if (currentIndex > 0) {
                 goToPage(currentIndex - 1);
+            } else {
+                console.log('Это первая страница');
             }
         }
 
@@ -233,6 +274,7 @@
             
             // Клавиатура
             document.onkeydown = function(e) {
+                console.log('Клавиша нажата:', e.key);
                 if (e.key === 'ArrowRight') nextPage();
                 if (e.key === 'ArrowLeft') prevPage();
             };
@@ -256,17 +298,37 @@
             };
             
             // Ресайз окна
-            window.onresize = updateSliderSize;
+            window.onresize = function() {
+                console.log('Окно изменило размер');
+                updateSliderSize();
+                goToPage(currentIndex); // Возвращаемся на текущую страницу
+            };
         }
 
         // ========== ЗАПУСК ==========
         function init() {
+            console.log('=== ИНИЦИАЛИЗАЦИЯ ФЛИПБУКА ===');
+            console.log('Файлы:', imageFiles);
+            
             createPages();
             setupControls();
-            console.log('Флипбук инициализирован. Файлы:', imageFiles);
+            
+            // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА через 2 секунды
+            setTimeout(() => {
+                console.log('=== ПРОВЕРКА ЧЕРЕЗ 2 СЕКУНДЫ ===');
+                console.log('Текущий индекс:', currentIndex);
+                console.log('Ширина страницы:', pageWidth);
+                console.log('Смещение слайдера:', slider.style.transform);
+                
+                // Принудительно показываем первую страницу
+                if (currentIndex !== 0) {
+                    console.log('ИСПРАВЛЯЕМ: показываем первую страницу');
+                    goToPage(0);
+                }
+            }, 2000);
         }
 
-        // Запускаем
+        // Запускаем когда страница полностью загружена
         window.onload = init;
     </script>
 </body>
